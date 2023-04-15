@@ -748,8 +748,8 @@ load_main_menu() {
     printf "1) Debian Server \n"    
     printf "2) Windows (WSL) \n"
     printf "3) Setup Frappe \n" 
-    printf "4) Setup Timezone to 'Asia/Bangkok'"
-    printf "5) Setup Terminal to 'oh-my-posh && zsh'"
+    printf "4) Setup Timezone to 'Asia/Bangkok' \n"
+    printf "5) Setup Terminal to 'oh-my-posh && zsh' \n"
     
     printf "Q) Quit \n"
     print_line
