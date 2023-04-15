@@ -438,7 +438,7 @@ create_env(){
   
   while true;
   do    
-    read -p "Frappe version: " -e -i "version-14" FRAPPE_VERSION;
+    read -p "Frappe version: " -e -i "$FRAPPE_VERSION" FRAPPE_VERSION;
     if [ -n "$FRAPPE_VERSION" ]; then break; fi
   done  
   
@@ -513,7 +513,7 @@ install_erpnext() {
   
   while true;
   do
-    read -p "ERPNext version: " -e -i "version-14" ERPNEXT_VERSION;
+    read -p "ERPNext version: " -e -i "$ERPNEXT_VERSION" ERPNEXT_VERSION;
     if [ -n "$ERPNEXT_VERSION" ]; then break; fi
   done
   
@@ -702,7 +702,7 @@ setup_wsl() {
   before_setup_wsl && install_library && \
   install_git_nvm_python && 
   install_redis_mariadb && \
-  setup_terminal && switch_to_zsh && \
+  # setup_terminal && switch_to_zsh && \
   after_setup_wsl
 }
 
@@ -719,20 +719,15 @@ after_setup_wsl() {
 
 before_setup_debian() {
   clear_screen
-  print_header "Update && Config server"
-  # "${WARNING_COLOR}WARNING: This task will restart server. Press any key to continue .... ${RESET_COLOR}"
-  
-  sudo su -c "
-    timedatectl set-timezone 'Asia/Bangkok' && \
-    timedatectl set-ntp true
-    "
+  print_header "Task start ...."
+
 }
 
 setup_debian(){
   before_setup_debian && install_library && \
   install_git_nvm_python && \
   install_redis_mariadb && \
-  setup_terminal && switch_to_zsh && \
+  # setup_terminal && switch_to_zsh && \
   after_setup_debian 
 }
 
@@ -752,8 +747,9 @@ load_main_menu() {
     
     printf "1) Debian Server \n"    
     printf "2) Windows (WSL) \n"
-    printf "3) Setup Frappe \n"   
-    printf "4) System \n"
+    printf "3) Setup Frappe \n" 
+    printf "4) Setup Timezone to 'Asia/Bangkok'"
+    printf "5) Setup Terminal to 'oh-my-posh && zsh'"
     
     printf "Q) Quit \n"
     print_line
@@ -772,6 +768,12 @@ load_main_menu() {
         ;;
       3)
         load_frappe_menu
+        ;;
+      4)
+        setup_timezone
+        ;;
+      5)
+        setup_terminal && switch_to_zsh
         ;;
       q|Q) 
         exit
@@ -843,8 +845,8 @@ set_variable() {
   FRAPPE_VERSION=version-14
   ERPNEXT_VERSION=version-14
     
-  APP_DIR="$HOME/workspace"
-  SITE="frappe.dev"
+  APP_DIR="$HOME/opt"
+  SITE="frappe.local"
 
   ROOT_PASSWORD=
   ADMIN_PASSWORD=
