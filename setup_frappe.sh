@@ -737,6 +737,38 @@ after_setup_debian(){
 ##############################################################################
 
 ##############################################################################
+# Setup on xfce desktop
+
+before_setup_desktop() {
+  clear_screen
+  print_header "Setup desktop environment ...."
+
+}
+
+setup_desktop(){
+  before_setup_desktop && \
+  sudo su -c "apt-get update && \
+              apt-get upgrade -y && \
+              apt-get install task-xfce-desktop dbus-x11 xrdp -y && \
+              service xrdp restart" && \
+  sudo su -c "sudo apt-get install wget gpg && \
+              wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg && \
+              install -D -o root -g root -m 644 packages.microsoft.gpg /etc/apt/keyrings/packages.microsoft.gpg && \
+              echo 'deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main' > /etc/apt/sources.list.d/vscode.list && \
+              rm -f packages.microsoft.gpg && \
+              apt install apt-transport-https && \
+              apt update && \
+              apt install code chromium -y" && \
+  after_setup_desktop 
+}
+
+after_setup_desktop(){
+  cleanup_cache
+}
+##############################################################################
+
+
+##############################################################################
 # MAIN
 
 load_main_menu() {
@@ -747,9 +779,10 @@ load_main_menu() {
     
     printf "1) Debian Server \n"    
     printf "2) Windows (WSL) \n"
-    printf "3) Setup Frappe \n" 
-    printf "4) Setup Timezone to 'Asia/Bangkok' \n"
-    printf "5) Setup Terminal to 'oh-my-posh && zsh' \n"
+    printf "3) Desktop Environment \n"
+    printf "4) Setup Frappe \n" 
+    printf "5) Setup Timezone to 'Asia/Bangkok' \n"
+    printf "6) Setup Terminal to 'oh-my-posh && zsh' \n"
     
     printf "Q) Quit \n"
     print_line
@@ -767,12 +800,15 @@ load_main_menu() {
         setup_wsl
         ;;
       3)
-        load_frappe_menu
+        setup_desktop
         ;;
       4)
-        setup_timezone
+        load_frappe_menu
         ;;
       5)
+        setup_timezone
+        ;;
+      6)
         setup_terminal && switch_to_zsh
         ;;
       q|Q) 
