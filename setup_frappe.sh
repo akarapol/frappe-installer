@@ -101,12 +101,12 @@ update_system() {
 
 cleanup_cache() {
   print_header "Cleanup"
-  rm --force ~/.*_history && \
-  rm --force ~/.zcompdump* && \
+  rm -f ~/.*_history && \
+  rm -f ~/.zcompdump* && \
   rm -rf ~/.cache/* && \
-  
+  rm -rf /var/tmp/* && \
+  rm -rf /tmp/*  
   printf "Cleanup cache and unused files successfully!\n"
-
 }
 
 smoke_test() {
@@ -759,6 +759,12 @@ setup_desktop(){
               apt install apt-transport-https && \
               apt update && \
               apt install code chromium -y" && \
+  sudo su -c "sudo apt install unzip -y && \
+              wget https://github.com/ryanoasis/nerd-fonts/releases/download/v2.3.3/FiraCode.zip && \
+              mkdir /usr/share/fonts/firacode && \
+              unzip FiraCode.zip -d /usr/share/fonts/firacode && \
+              rm -f FiraCode.zip && \
+              fc-cache -fv" && \
   after_setup_desktop 
 }
 
