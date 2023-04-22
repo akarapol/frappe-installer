@@ -749,7 +749,7 @@ setup_desktop(){
   before_setup_desktop && \
   sudo su -c "apt-get update && \
               apt-get upgrade -y && \
-              apt-get install task-xfce-desktop dbus-x11 xrdp -y && \
+              apt-get install xfce4 xfce4-goodies xorg dbus-x11 x11-xserver-utils sudo xrdp -y && \
               service xrdp restart" && \
   sudo su -c "sudo apt-get install wget gpg && \
               wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg && \
