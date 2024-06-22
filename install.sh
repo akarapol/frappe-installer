@@ -27,8 +27,6 @@ MARIADB_VERSION= #"10.11"
 
 DB_TYPE= #[mariadb, postgres]
 DB_HOST= #"localhost"
-DB_ROOT_USERNAME= #"root"
-DB_ROOT_PASSWORD= #"1234"
 
 REPO_MODE="ssh" #[ssh]
 REPO_URI= #"your.server.domain"
@@ -44,7 +42,6 @@ APP_LIST= #"erpnext=version-15 custom_app=branch_name"
 
 SITE_NAME= #"frappe-15.local"
 SITE_DB_NAME= #"frappe-15"
-SITE_ADMIN_PASSWORD= #"1234"
 
 # ************************************************************ #
 # MISC.                                                        #
@@ -94,9 +91,9 @@ check_variables() {
   local err_msg=$(print_header "Check Variables")
   local fail=0
   local vars=("GIT_VERSION" "NODE_VERSION" "PYTHON_VERSION" "MARIADB_VERSION")
-  vars+=("DB_TYPE" "DB_HOST" "DB_ROOT_USERNAME" "DB_ROOT_PASSWORD")
+  vars+=("DB_TYPE" "DB_HOST")
   vars+=("REPO_MODE" "REPO_URI" "REPO_SSH_KEY")
-  vars+=("INSTANCE" "SITE_NAME" "SITE_DB_NAME" "SITE_ADMIN_PASSWORD")
+  vars+=("INSTANCE" "SITE_NAME" "SITE_DB_NAME")
 
   for v in "${vars[@]}"; do
     if [[ -z "${!v}" ]]; then
