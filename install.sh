@@ -15,6 +15,7 @@ LOG=
 SERVER_ROLE=
 PROG=
 FUNC=
+PASSWD=
 
 # ************************************************************ #
 # USER VARIABLES                                               #
@@ -469,6 +470,28 @@ create_instance() {
   LOG+=$(success "Create instance ${INSTANCE} in ${INSTALL_DIR}")
 }
 
+set_password() {
+  local password confirmed_password
+
+  while true; do
+    # Prompt for password with masking
+    read -sp "Enter password: " password
+    echo
+
+    # Prompt for confirmation with masking
+    read -sp "Confirm password: " confirmed_password
+    echo
+
+    # Check if passwords match
+    if [[ "$password" == "$confirmed_password" ]]; then
+      break
+    else
+      echo "Passwords do not match. Please try again."
+    fi
+  done
+  PASSWD=$password
+}
+
 create_site() {
   clear_screen
   print_header "Setup site >> ${SITE_NAME}"
@@ -476,14 +499,29 @@ create_site() {
   if [ -d "${INSTALL_DIR}/${INSTANCE}/${SITE_NAME}" ]; then
 	LOG+=$(success "Site ${SITE_NAME} already exist")
   else
+    print_header "Please provide the admin user and password of DB server"
+    while true;
+    do 
+      read -p "User: " user;
+      if [ -n "$user" ]; then break;  fi
+    done
+    set_password
+    local db_pass=$PASSWD
+    PASSWD=
+
+    print_header "Please provide the administrator password for site ${SITE_NAME}"
+    set_password
+    local admin_pass=$PASSWD
+    PASSWD=
+    
 	cd "${INSTALL_DIR}/${INSTANCE}" &&
 	bench new-site "${SITE_NAME}" \
 	              --no-mariadb-socket \
 	              --db-host "${DB_HOST}" \
-	              --db-root-username "${DB_ROOT_USERNAME}" \
-	              --db-root-password "${DB_ROOT_PASSWORD}" \
+	              --db-root-username "$user" \
+	              --db-root-password "${db_pass}" \
 	              --db-name "${SITE_DB_NAME}" \
-	              --admin-password "${SITE_ADMIN_PASSWORD}" \
+	              --admin-password "${admin_pass}" \
 	              --verbose &&
 	bench --site "${SITE_NAME}" add-to-hosts
 	LOG+=$(success "Create site ${SITE_NAME} for instance ${INSTANCE}")
@@ -495,8 +533,7 @@ create_site() {
 	  aio)  ;;
 	  app)  ;;
 	  *)    ;;
-	esac
-	
+	esac	
   fi
 }
 
