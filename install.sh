@@ -137,7 +137,7 @@ update_system() {
     apt update && apt upgrade -y &&
     apt autoclean -y && apt autoremove -y"
 
-  LOG+=$(success "System update successfull\n")
+  LOG+=$(success "System update successfull")
 }
 
 install_library() {
@@ -153,7 +153,7 @@ install_library() {
       libcurl4-gnutls-dev libexpat1-dev gettext libz-dev libssl-dev && \
     apt autoclean -y && apt autoremove -y"
 
-  LOG+=$(success "Install libraries successful\n")
+  LOG+=$(success "Install libraries successful")
 }
 
 # ************************************************************ #
@@ -228,11 +228,11 @@ install_nvm() {
   clear_screen
   print_header "Install NVM"
 
-  if exist nvm; then
+  if [ -d "${HOME}/.nvm" ]; then
     local node_version=$(node --version)
-    LOG+=$(success "NVM version ${node_version} already installed")
+    LOG+=$(success "NVM and node version ${node_version} already installed")
   else
-    curl -fsSL https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
+    sh -c "curl -fsSL https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash"
     
     if ! grep -iq "export NVM_DIR" ~/.zshrc; then
       printf "\n%s\n%s\n%s" \
@@ -261,7 +261,7 @@ install_python() {
   print_header "Install PYTHON Version ${PYTHON_VERSION}"
   
   if exist python; then
-    python_version=$(python --version 2>&1 | awk '{print $2}')
+    local python_version=$(python --version 2>&1 | awk '{print $2}')
     LOG+=$(success "Python version ${python_version} already installed")
   else
     sudo sh -c "
@@ -323,14 +323,17 @@ install_redis() {
   clear_screen
   print_header "Install Redis Server"
   
-  if ! exist redis-server; then
+  if exist redis-server; then
+    LOG+=$(success "Redis already installed")
+  else
     sudo sh -c "
       apt update && apt upgrade -y &&
       apt install --no-install-recommends -y \
         redis-server &&
       apt autoclean -y && apt autoremove -y"
+
+	  LOG+=$(success "Install Redis successful")
   fi
-  LOG+=$(success "Install Redis successful")
 }
 
 setup_mariadb_repository() {  
@@ -343,7 +346,9 @@ install_mariadb() {
   clear_screen
   print_header "Install MariaDB Server"
   
-  if ! exist mariadb; then
+  if exist mariadb; then
+    LOG+=$(success "MariaDB Server already installed")	
+  else
     setup_mariadb_repository
 
     sudo sh -c "
@@ -376,7 +381,9 @@ install_mariadb_client() {
   clear_screen
   print_header "Install MariaDB Client"
   
-  if ! exist mariadb; then
+  if exist mariadb; then
+    LOG+=$(success "MariaDB Client already installed")
+  else
     setup_mariadb_repository
 
     sudo sh -c "
@@ -437,14 +444,15 @@ install_bench() {
       
     pip install frappe-bench=="${BENCH_VERSION}"
     sudo pip install frappe-bench=="${BENCH_VERSION}"
+
+	LOG+=$(success "Install Bench successful")
   fi
-  LOG+=$(success "Install Bench successful")
 }
 
 enable_dev() {
   cd "${INSTALL_DIR}/${INSTANCE}"
   bench set-config -g developer_mode True
-  STATUS_MSG+=$(success "Setup Development Mode")
+  LOG+=$(success "Setup Development Mode")
 }
 
 create_instance() {
@@ -465,27 +473,31 @@ create_site() {
   clear_screen
   print_header "Setup site >> ${SITE_NAME}"
 
-  cd "${INSTALL_DIR}/${INSTANCE}" &&
-  bench new-site "${SITE_NAME}" \
-                --no-mariadb-socket \
-                --db-host "${DB_HOST}" \
-                --db-root-username "${DB_ROOT_USERNAME}" \
-                --db-root-password "${DB_ROOT_PASSWORD}" \
-                --db-name "${SITE_DB_NAME}" \
-                --admin-password "${SITE_ADMIN_PASSWORD}" \
-                --verbose &&
-  bench --site "${SITE_NAME}" add-to-hosts
+  if [ -d "${INSTALL_DIR}/${INSTANCE}/${SITE_NAME}" ]; then
+	LOG+=$(success "Site ${SITE_NAME} already exist")
+  else
+	cd "${INSTALL_DIR}/${INSTANCE}" &&
+	bench new-site "${SITE_NAME}" \
+	              --no-mariadb-socket \
+	              --db-host "${DB_HOST}" \
+	              --db-root-username "${DB_ROOT_USERNAME}" \
+	              --db-root-password "${DB_ROOT_PASSWORD}" \
+	              --db-name "${SITE_DB_NAME}" \
+	              --admin-password "${SITE_ADMIN_PASSWORD}" \
+	              --verbose &&
+	bench --site "${SITE_NAME}" add-to-hosts
+	LOG+=$(success "Create site ${SITE_NAME} for instance ${INSTANCE}")
 
-  case "${SERVER_ROLE}" in
-    dev)
-      enable_dev 
-      ;;
-    aio)  ;;
-    app)  ;;
-    *)    ;;
-  esac
-
-  LOG+=$(success "Create site ${SITE_NAME} for instance ${INSTANCE}")
+	case "${SERVER_ROLE}" in
+	  dev)
+	    enable_dev 
+	    ;;
+	  aio)  ;;
+	  app)  ;;
+	  *)    ;;
+	esac
+	
+  fi
 }
 
 install_app() {
@@ -505,8 +517,7 @@ install_app() {
 install_frappe() {
   clear_screen
   print_header "Install Frappe Version ${FRAPPE_VERSION}"
-  create_instance && create_site && \
-  install_app
+  create_instance && create_site && install_app
 
   LOG+=$(success "Install Frappe successful")
 }
@@ -554,6 +565,8 @@ fi
 if [[ -n "$SERVER_ROLE" ]]; then
   case "$SERVER_ROLE" in
     dev)
+      clear_screen
+      LOG=$(print_header "Setup Frappe Dev server")
       update_system
       install_library && install_git && install_nvm && install_python
       install_redis && install_mariadb
