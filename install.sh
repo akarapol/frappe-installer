@@ -265,8 +265,10 @@ install_python() {
     sudo sh -c "
       apt update && apt upgrade -y && 
       apt install --no-install-recommends -y \
-        libbz2-dev libncurses-dev libncursesw5-dev libgdbm-dev \
-        liblzma-dev libsqlite3-dev libgdbm-compat-dev libreadline-dev &&
+        curl gcc libbz2-dev libev-dev libffi-dev \
+        libgdbm-dev liblzma-dev libncurses-dev \
+        libreadline-dev libsqlite3-dev libssl-dev \
+        make tk-dev wget zlib1g-dev &&
       apt autoclean -y && apt autoremove -y"
 
     sudo sh -c "
@@ -276,18 +278,9 @@ install_python() {
       tar -xJC /usr/src/python --strip-components=1 -f python.tar.xz &&
       rm -f python.tar.xz"
 
-    cd /usr/src/python
-
-    sudo sh -c "./configure \
-          --enable-optimizations \
-          #--enable-option-checking=fatal \
-          --enable-shared \
-          #--without-ensurepip"
-
     sudo sh -c "
-      make clean &&
-      make -j '$(nproc)' &&
-      make install &&
+      cd /usr/src/python && ./configure &&
+	 make clean && make -j '$(nproc)' && make install &&
       rm -rf /usr/src/python"
 
     find /usr/local -type d | grep -E "('test'|'tests'|'idle_test')" | xargs sudo rm -rf
@@ -295,7 +288,7 @@ install_python() {
 
     # create symlink
     cd /usr/local/bin
-    
+
     sudo sh -c "
       ln -s idle3 idle &&
       ln -s pydoc3 pydoc &&
@@ -305,13 +298,12 @@ install_python() {
 
     python -m pip install --upgrade pip
     python -m pip install --upgrade setuptools
-    
-    sudo python -m pip install poetry && \
-      poetry config virtualenvs.in-project true
+
+    sudo sh -c "python -m pip install poetry &&
+      poetry config virtualenvs.in-project true"
 
     LOG+=$(success "Install PYTHON successful")
   fi
-
 }
 
 # ************************************************************ #
