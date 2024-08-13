@@ -599,6 +599,14 @@ if [[ -n "$SERVER_ROLE" ]]; then
       install_bench && install_frappe
       clear_screen && exit 0
       ;;
+    db)
+      clear_screen
+      LOG=$(print_header "Setup MariaDB server")
+      update_system
+      install_library
+      install_redis && install_mariadb
+      clear_screen && exit 0
+      ;;
     *)
       LOG=$(error "Invalid setup mode: $SERVER_ROLE\n")
       clear_screen
