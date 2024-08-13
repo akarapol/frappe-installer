@@ -590,7 +590,7 @@ fi
 
 if [[ -n "$SERVER_ROLE" ]]; then
   case "$SERVER_ROLE" in
-    dev)
+    dev|aio)
       clear_screen
       LOG=$(print_header "Setup Frappe Dev server")
       update_system
@@ -605,6 +605,14 @@ if [[ -n "$SERVER_ROLE" ]]; then
       update_system
       install_library
       install_redis && install_mariadb
+      clear_screen && exit 0
+      ;;
+    app)
+      clear_screen
+      LOG=$(print_header "Setup Frappe App server")
+      update_system
+      install_library && install_git && install_nvm && install_python
+      install_bench && install_frappe
       clear_screen && exit 0
       ;;
     *)
