@@ -20,10 +20,10 @@ PASSWD=
 # ************************************************************ #
 # USER VARIABLES                                               #
 # ************************************************************ #
-GIT_VERSION= #"2.43.0"
-NODE_VERSION= #"20.11.0"
-PYTHON_VERSION= #"3.12.0"
-MARIADB_VERSION= #"10.11"
+GIT_VERSION= #"2.50"
+NODE_VERSION= #"24.12"
+PYTHON_VERSION= #"3.14"
+MARIADB_VERSION= #"11.8"
 
 DB_TYPE= #[mariadb, postgres]
 DB_HOST= #"localhost"
@@ -33,15 +33,15 @@ REPO_URI= #"your.server.domain"
 REPO_PORT= #"22"
 REPO_SSH_KEY= #"$HOME/path/to/private.key"
 
-BENCH_VERSION= #"5.22"
-FRAPPE_VERSION= #"version-15"
+BENCH_VERSION= #"5.29"
+FRAPPE_VERSION= #"version-16"
 INSTALL_DIR= #"$HOME/opt"
 
-INSTANCE= #"frappe-15"
-APP_LIST= #"erpnext=version-15 custom_app=branch_name"
+INSTANCE= #"frappe-16"
+APP_LIST= #"erpnext=version-16 custom_app=branch_name"
 
-SITE_NAME= #"frappe-15.local"
-SITE_DB_NAME= #"frappe-15"
+SITE_NAME= #"frappe-dev.local"
+SITE_DB_NAME= #"frappe-dev"
 
 # ************************************************************ #
 # MISC.                                                        #
@@ -102,7 +102,7 @@ check_variables() {
       fail=1
     fi
   done
-  
+
   if [ "${fail}" == 1 ]; then exit 1; fi
 }
 
@@ -141,7 +141,7 @@ update_system() {
 install_library() {
   clear_screen
   print_header "Install libraries"
-  
+
   sudo sh -c "
     apt update && apt upgrade -y && \
     apt install --no-install-recommends -y \
@@ -169,14 +169,14 @@ install_git() {
     sudo sh -c "
       cd /tmp
       curl -fsSL https://github.com/git/git/archive/refs/tags/v${GIT_VERSION}.zip -o git.zip &&
-      unzip git.zip && 
+      unzip git.zip &&
       cd git-${GIT_VERSION} &&
-      make clean && 
-      make prefix=/usr/local all && 
+      make clean &&
+      make prefix=/usr/local all &&
       make prefix=/usr/local install &&
-      rm git.zip && 
+      rm git.zip &&
       rm -rf git-${GIT_VERSION}"
-  
+
     LOG+=$(success "Install GIT version ${GIT_VERSION} successful")
   fi
 }
@@ -201,19 +201,19 @@ install_lazygit() {
 install_ohmyposh() {
   clear
   print_header "Install oh-my-posh over zsh"
-  
+
   sudo sh -c "
     apt update &&
-    apt upgrade -y && 
+    apt upgrade -y &&
     apt install --no-install-recommends -y zsh &&
     apt autoclean -y"
-  
+
   sudo sh -c "curl https://ohmyposh.dev/install.sh | bash -s"
   local theme="catppuccin_frappe"
   mkdir -p $HOME/.oh-my-posh &&
     wget https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/${theme}.omp.json -O $HOME/.oh-my-posh/default.omp.json
-  
-  if ! grep -iq "oh-my-posh init zsh" ~/.zshrc; then  
+
+  if ! grep -iq "oh-my-posh init zsh" ~/.zshrc; then
     printf "\n%s" \
       "eval \"\$(oh-my-posh init zsh --config ~/.oh-my-posh/default.omp.json)\"" |
       tee -a $HOME/.zshrc >/dev/null
@@ -231,7 +231,7 @@ install_nvm() {
     LOG+=$(success "NVM and node version ${node_version} already installed")
   else
     sh -c "curl -fsSL https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash"
-    
+
     if ! grep -iq "export NVM_DIR" ~/.zshrc; then
       printf "\n%s\n%s\n%s" \
         "export NVM_DIR=\"\$HOME/.nvm\"" \
@@ -249,7 +249,7 @@ install_nvm() {
     nvm install v${NODE_VERSION} &&
     nvm install-latest-npm &&
     npm install -g yarn
-    
+
     LOG+=$(success "Install node, npm and yarn successful")
   fi
 }
@@ -257,52 +257,13 @@ install_nvm() {
 install_python() {
   clear_screen
   print_header "Install PYTHON Version ${PYTHON_VERSION}"
-  
-  if exist python; then
-    local python_version=$(python --version 2>&1 | awk '{print $2}')
-    LOG+=$(success "Python version ${python_version} already installed")
+
+  if exist uv; then
+    uv python install ${PYTHON_VERSION} --default
   else
-    sudo sh -c "
-      apt update && apt upgrade -y && 
-      apt install --no-install-recommends -y \
-        curl gcc libbz2-dev libev-dev libffi-dev \
-        libgdbm-dev liblzma-dev libncurses-dev \
-        libreadline-dev libsqlite3-dev libssl-dev \
-        make tk-dev wget zlib1g-dev &&
-      apt autoclean -y && apt autoremove -y"
-
-    sudo sh -c "
-      cd /tmp
-      curl "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-${PYTHON_VERSION}.tar.xz" -o python.tar.xz
-      mkdir -p /usr/src/python &&
-      tar -xJC /usr/src/python --strip-components=1 -f python.tar.xz &&
-      rm -f python.tar.xz"
-
-    sudo sh -c "
-      cd /usr/src/python && ./configure &&
-	 make clean && make -j '$(nproc)' && make install &&
-      rm -rf /usr/src/python"
-
-    find /usr/local -type d | grep -E "('test'|'tests'|'idle_test')" | xargs sudo rm -rf
-    find /usr/local -type f | grep -E "('*.pyc'|'*.pyo'|'*.a')" | xargs sudo rm -f
-
-    # create symlink
-    cd /usr/local/bin
-
-    sudo sh -c "
-      ln -s idle3 idle &&
-      ln -s pydoc3 pydoc &&
-      ln -s python3 python &&
-      ln -s python3-config python-config &&
-      ln -s pip3 pip"
-
-    python -m pip install --upgrade pip
-    python -m pip install --upgrade setuptools
-
-    sudo sh -c "python -m pip install poetry &&
-      poetry config virtualenvs.in-project true"
-
-    LOG+=$(success "Install PYTHON successful")
+    curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    source $HOME/.local/bin/env && \
+    uv python install ${PYTHON_VERSION} --default
   fi
 }
 
@@ -312,7 +273,7 @@ install_python() {
 install_redis() {
   clear_screen
   print_header "Install Redis Server"
-  
+
   if exist redis-server; then
     LOG+=$(success "Redis already installed")
   else
@@ -326,41 +287,41 @@ install_redis() {
   fi
 }
 
-setup_mariadb_repository() {  
+setup_mariadb_repository() {
   LOG+=$(success "Setup MariaDB Repository")
   sudo sh -c "curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup \
-    | bash -s -- --skip-maxscale --mariadb-server-version=\"mariadb-${MARIADB_VERSION}\""
+    | bash -s -- --skip-maxscale --mariadb-server-version=${MARIADB_VERSION}"
 }
 
 install_mariadb() {
   clear_screen
   print_header "Install MariaDB Server"
-  
+
   if exist mariadb; then
-    LOG+=$(success "MariaDB Server already installed")	
+    LOG+=$(success "MariaDB Server already installed")
   else
     setup_mariadb_repository
 
     sudo sh -c "
       apt update && apt upgrade -y &&
       apt install --no-install-recommends -y \
-          mariadb-server mariadb-client &&
+          mariadb-server mariadb-client libmariadb-dev &&
       apt autoclean -y && apt autoremove -y"
 
-    # Config /etc/mysql/my.cnf
+    # Config /etc/mysql/mariadb.cnf
     sudo sh -c 'echo "
     [mysqld]
     bind-address = 0.0.0.0
     character-set-client-handshake = FALSE
     character-set-server = utf8mb4
-    collation-server = utf8mb4_unicode_ci
+    collation-server = utf8mb4_thai_520_w2
 
     [mysql]
     default-character-set = utf8mb4
-    " >> /etc/mysql/my.cnf'
+    " >> /etc/mysql/mariadb.cnf'
 
     sudo service mariadb start  &&
-    sudo mysql_secure_installation &&
+    sudo mariadb-secure-installation &&
     sudo service mariadb restart
 
     LOG+=$(success "Install MariaDB Server successful")
@@ -370,7 +331,7 @@ install_mariadb() {
 install_mariadb_client() {
   clear_screen
   print_header "Install MariaDB Client"
-  
+
   if exist mariadb; then
     LOG+=$(success "MariaDB Client already installed")
   else
@@ -387,7 +348,7 @@ install_mariadb_client() {
     [mysql]
     default-character-set = utf8mb4
     " >> /etc/mysql/my.cnf'
-    
+
     LOG+=$(success "Install MariaDB Client successful")
   fi
 }
@@ -404,7 +365,7 @@ setup_repo() {
         " Port ${REPO_PORT}" \
         " User git" \
         " IdentityFile ${REPO_SSH_KEY}" |
-        tee -a ~/.ssh/config >/dev/null  
+        tee -a ~/.ssh/config >/dev/null
     fi
     REPO_ADDR=ssh://frappe-repo/frappe
   else
@@ -417,11 +378,11 @@ setup_repo() {
 install_bench() {
   clear_screen
   print_header "Install Bench Version ${BENCH_VERSION}"
-  
+
   if ! exist bench; then
-    # frappe needed library       
+    # frappe needed library
     sudo sh -c "
-      apt update && apt upgrade -y &&      
+      apt update && apt upgrade -y &&
       apt install --no-install-recommends -y \
           xvfb libfontconfig wkhtmltopdf &&
       apt autoclean -y && apt autoremove -y"
@@ -431,9 +392,8 @@ install_bench() {
       apt install --no-install-recommends -y \
         libzbar0
       apt autoclean -y && apt autoremove -y"
-      
-    pip install frappe-bench=="${BENCH_VERSION}"
-    sudo pip install frappe-bench=="${BENCH_VERSION}"
+
+    uv tool install frappe-bench==${BENCH_VERSION}
 
 	LOG+=$(success "Install Bench successful")
   fi
@@ -448,7 +408,7 @@ enable_dev() {
 create_instance() {
   clear_screen
   print_header "Create new instance ${INSTANCE} in ${INSTALL_DIR}"
-  
+
   setup_repo
   bench init "${INSTALL_DIR}/${INSTANCE}" \
               --frappe-branch "${FRAPPE_VERSION}" \
@@ -490,7 +450,7 @@ create_site() {
   else
     print_header "Please provide the admin user and password of DB server"
     while true;
-    do 
+    do
       read -p "User: " user;
       if [ -n "$user" ]; then break;  fi
     done
@@ -502,27 +462,28 @@ create_site() {
     set_password
     local admin_pass=$PASSWD
     PASSWD=
-    
+
 	cd "${INSTALL_DIR}/${INSTANCE}" &&
 	bench new-site "${SITE_NAME}" \
-	              --no-mariadb-socket \
 	              --db-host "${DB_HOST}" \
 	              --db-root-username "$user" \
 	              --db-root-password "${db_pass}" \
 	              --db-name "${SITE_DB_NAME}" \
 	              --admin-password "${admin_pass}" \
+				  --mariadb-user-host-login-scope "localhost" \
 	              --verbose &&
+	bench use "${SITE_NAME}" &&
 	bench --site "${SITE_NAME}" add-to-hosts
 	LOG+=$(success "Create site ${SITE_NAME} for instance ${INSTANCE}")
 
 	case "${SERVER_ROLE}" in
 	  dev)
-	    enable_dev 
+	    enable_dev
 	    ;;
 	  aio)  ;;
 	  app)  ;;
 	  *)    ;;
-	esac	
+	esac
   fi
 }
 
@@ -533,7 +494,7 @@ install_app() {
   for app in ${APP_LIST}; do
     local app_name="${app%%=*}"  # Extract key (everything before =)
     local app_branch="${app#*=}"  # Extract value (everything after =)
-    
+
     bench get-app "{app_name}" "${REPO_ADDR}/${app_name}" --branch ${app_branch} &&
     bench --site "${SITE_NAME}" install-app "${app_name}"
   	LOG+=$(success "Install app ${app_name} branch ${app_branch}")
@@ -621,7 +582,7 @@ if [[ -n "$SERVER_ROLE" ]]; then
       exit 1
       ;;
   esac
-else 
+else
   case "$PROG" in
     *)
       LOG=$(error "Invalid software to install: $PROG\n")
