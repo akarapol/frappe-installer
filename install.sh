@@ -45,7 +45,7 @@ DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-""}
 
 REPO_MODE=${REPO_MODE:-"ssh"}
 REPO_URI=${REPO_URI:-""}
-REPO_PORT=${REPO_PORT:-"22"}
+REPO_PORT=${REPO_PORT:-""}
 REPO_SSH_KEY=${REPO_SSH_KEY:-""}
 
 BENCH_VERSION=${BENCH_VERSION:-"5.29"}
@@ -53,7 +53,7 @@ FRAPPE_VERSION=${FRAPPE_VERSION:-"version-16"}
 INSTALL_DIR=${INSTALL_DIR:-"$HOME/opt"}
 
 INSTANCE=${INSTANCE:-"frappe-16"}
-APP_LIST=${APP_LIST:-"insights=version-3 print_designer=develop"}
+APP_LIST=${APP_LIST:-"print_designer=develop"}
 
 SITE_NAME=${SITE_NAME:-"frappe-dev.local"}
 SITE_DB_NAME=${SITE_DB_NAME:-"frappe-dev"}
@@ -109,20 +109,20 @@ check_variables() {
   printf "\n"
 
   local fail=0
-  
+
   # Group variables for clarity
   local core_vars=("GIT_VERSION" "NODE_VERSION" "PYTHON_VERSION" "MARIADB_VERSION")
   local db_vars=("DB_TYPE" "DB_HOST" "DB_ROOT_USER" "DB_ROOT_PASSWORD")
   local repo_vars=("REPO_MODE" "REPO_URI" "REPO_PORT" "REPO_SSH_KEY")
   local frappe_vars=("INSTANCE" "SITE_NAME" "SITE_DB_NAME" "APP_LIST")
-  
+
   local all_vars=("${core_vars[@]}" "${db_vars[@]}" "${repo_vars[@]}" "${frappe_vars[@]}")
 
   for v in "${all_vars[@]}"; do
     local current_val="${!v:-}"
     local prompt_text="${v}"
     local is_password=0
-    
+
     if [[ "$v" =~ "PASSWORD" || "$v" =~ "PASSWD" ]]; then
         is_password=1
     fi
@@ -137,7 +137,7 @@ check_variables() {
     else
         prompt_text="${prompt_text} [${red}Required${reset}]"
     fi
-    
+
     # Read user input
     printf "${prompt_text}: "
     if [[ $is_password -eq 1 ]]; then
@@ -146,11 +146,11 @@ check_variables() {
     else
         read input_val
     fi
-    
+
     if [[ -n "${input_val}" ]]; then
       export "${v}=${input_val}"
     fi
-    
+
     # Validation
     if [[ -z "${!v:-}" ]]; then
       error "Variable ${v} cannot be empty."
@@ -158,11 +158,11 @@ check_variables() {
     fi
   done
 
-  if [ "${fail}" == 1 ]; then 
+  if [ "${fail}" == 1 ]; then
     error "Configuration incomplete. Please provide values for the required variables."
-    exit 1 
+    exit 1
   fi
-  
+
   success "Configuration validated."
 }
 
@@ -173,7 +173,7 @@ confirm_proceed() {
   info "Site: ${SITE_NAME}"
   info "Install Directory: ${INSTALL_DIR}"
   info "OS Detected: ${OS_NAME}"
-  
+
   printf "\n"
   read -p "Do you want to proceed with the installation? (y/N): " confirm
   if [[ ! "$confirm" =~ ^[yY]$ ]]; then
@@ -192,7 +192,7 @@ display_help() {
   printf "  -i   Install specific software (python, nvm, git).\n"
   printf "  -t   Setup type (dev, aio, app, db).\n"
   printf "  -x   Run specific function directly.\n\n"
-  
+
   printf "Examples:\n"
   printf "  ./install.sh -t dev        # Full development setup\n"
   printf "  ./install.sh -t db         # Database only setup\n"
@@ -283,7 +283,7 @@ install_ohmyposh() {
 
   info "Installing oh-my-posh..."
   sudo sh -c "curl https://ohmyposh.dev/install.sh | bash -s"
-  
+
   local theme="catppuccin_frappe"
   mkdir -p "$HOME/.oh-my-posh"
   wget -q https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/${theme}.omp.json -O "$HOME/.oh-my-posh/default.omp.json"
@@ -304,7 +304,7 @@ install_nvm() {
     # Source NVM to check
     export NVM_DIR="$HOME/.nvm"
     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-    
+
     if exist node; then
         info "Node $(node --version) is already installed."
     else
@@ -321,7 +321,7 @@ install_nvm() {
     nvm install "v${NODE_VERSION}" &&
     nvm install-latest-npm &&
     npm install -g yarn
-    
+
     success "Install NVM and Node successful"
   fi
 }
@@ -334,7 +334,7 @@ install_python() {
     curl -LsSf https://astral.sh/uv/install.sh | sh
     source "$HOME/.local/bin/env"
   fi
-  
+
   info "Installing Python ${PYTHON_VERSION} via uv..."
   uv python install "${PYTHON_VERSION}" --default
   success "Python ${PYTHON_VERSION} installation successful"
@@ -363,18 +363,18 @@ setup_mariadb_repository() {
 
 secure_mariadb() {
   info "Securing MariaDB installation..."
-  
+
   # Check if we can login without password (fresh install usually allows sudo mariadb)
   if sudo mariadb -e "SELECT 1;" >/dev/null 2>&1; then
       info "Applying security settings and setting root password..."
-      
+
       # Commands to:
       # 1. Set root password (force native password auth to fix 1698 socket error)
       # 2. Remove anonymous users
       # 3. Disallow remote root login
       # 4. Remove test database
       # 5. Reload privileges
-      
+
       sudo mariadb <<EOF
 FLUSH PRIVILEGES;
 ALTER USER 'root'@'localhost' IDENTIFIED VIA mysql_native_password USING PASSWORD('${DB_ROOT_PASSWORD}');
@@ -426,7 +426,7 @@ default-character-set = utf8mb4
 
     sudo service mariadb start
     secure_mariadb
-    
+
     info "Restarting MariaDB to apply security changes..."
     sudo service mariadb restart
 
@@ -467,7 +467,7 @@ setup_repo() {
   fi
 
   info "Configuring SSH for Frappe repository (${REPO_URI}:${REPO_PORT})..."
-  
+
   local config_file="$HOME/.ssh/config"
   mkdir -p "$HOME/.ssh"
   touch "$config_file"
@@ -493,7 +493,7 @@ setup_repo() {
     printf "  StrictHostKeyChecking no\n"
     printf "  UserKnownHostsFile /dev/null\n"
   } >> "$config_file"
-  
+
   REPO_ADDR="ssh://frappe-repo/frappe"
   success "SSH config updated for host 'frappe-repo'."
 }
@@ -507,7 +507,7 @@ install_bench() {
     info "Installing Bench dependencies..."
     sudo apt update && \
     sudo apt install --no-install-recommends -y xvfb libfontconfig wkhtmltopdf libzbar0
-    
+
     info "Installing frappe-bench via uv..."
     uv tool install "frappe-bench==${BENCH_VERSION}"
 	success "Install Bench successful"
@@ -541,7 +541,7 @@ create_instance() {
               --frappe-branch "${FRAPPE_VERSION}" \
               --frappe-path "${REPO_ADDR}/frappe" \
               --verbose
-  
+
   cd "${INSTALL_DIR}/${INSTANCE}"
   chmod -R o+rx "${INSTALL_DIR}/${INSTANCE}"
   success "Instance ${INSTANCE} created successfully"
@@ -574,20 +574,20 @@ start_bench_services() {
 
   print_header "Starting Temporary Bench Services"
   info "Starting Redis instances for cache, queue, and socketio..."
-  
+
   cd "${INSTALL_DIR}/${INSTANCE}"
-  
+
   # Start Redis servers in background using generated configs
   if [ -f config/redis_cache.conf ]; then
       redis-server config/redis_cache.conf &
       echo $! > config/pids_redis_cache.pid
   fi
-  
+
   if [ -f config/redis_queue.conf ]; then
       redis-server config/redis_queue.conf &
       echo $! > config/pids_redis_queue.pid
   fi
-  
+
   if [ -f config/redis_socketio.conf ]; then
       redis-server config/redis_socketio.conf &
       echo $! > config/pids_redis_socketio.pid
@@ -606,7 +606,7 @@ stop_bench_services() {
 
   print_header "Stopping Temporary Bench Services"
   cd "${INSTALL_DIR}/${INSTANCE}"
-  
+
   for pid_file in config/pids_redis_*.pid; do
       if [ -f "$pid_file" ]; then
           local pid=$(cat "$pid_file")
@@ -626,7 +626,7 @@ create_site() {
 	success "Site ${SITE_NAME} already exists. Skipping creation."
   else
     info "Configuring database for site ${SITE_NAME}..."
-    
+
     info "Set Administrator password for site ${SITE_NAME}:"
     set_password
     local admin_pass=$PASSWD
@@ -641,7 +641,7 @@ create_site() {
 	              --verbose &&
 	bench use "${SITE_NAME}" &&
 	bench --site "${SITE_NAME}" add-to-hosts
-	
+
 	success "Site ${SITE_NAME} created successfully"
 
 	case "${SERVER_ROLE}" in
@@ -669,21 +669,21 @@ install_app() {
         info "Fetching app ${app_name} [${app_branch}]..."
         bench get-app "${app_name}" "${REPO_ADDR}/${app_name}" --branch "${app_branch}"
     fi
-    
+
     info "Installing app ${app_name} on site ${SITE_NAME}..."
     bench --site "${SITE_NAME}" install-app "${app_name}"
   	success "App ${app_name} installed successfully"
   done
-  
+
   # Stop services
   stop_bench_services
 }
 
 install_frappe() {
   print_header "Frappe Installation"
-  
-  create_instance 
-  create_site 
+
+  create_instance
+  create_site
   install_app
 
   success "Frappe installation completed"
