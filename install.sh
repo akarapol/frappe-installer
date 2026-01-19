@@ -405,8 +405,7 @@ install_mariadb() {
     sudo apt update && \
     sudo apt install --no-install-recommends -y \
         mariadb-server mariadb-client \
-        libmariadb-dev libmariadb-dev-compat \
-        default-libmysqlclient-dev libmysqlclient-dev && \
+        libmariadb-dev libmariadb-dev-compat && \
     sudo apt autoclean -y && sudo apt autoremove -y
 
     # Config /etc/mysql/mariadb.conf
@@ -444,8 +443,7 @@ install_mariadb_client() {
     sudo apt update && \
     sudo apt install --no-install-recommends -y \
         mariadb-client \
-        libmariadb-dev libmariadb-dev-compat \
-        default-libmysqlclient-dev libmysqlclient-dev \
+        libmariadb-dev libmariadb-dev-compat && \
     sudo apt autoclean -y && sudo apt autoremove -y
 
     # Config /etc/mysql/my.cnf
