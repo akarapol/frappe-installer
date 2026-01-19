@@ -33,7 +33,6 @@ PASSWD=
 # ************************************************************ #
 # USER VARIABLES (Defaults)                                    #
 # ************************************************************ #
-GIT_VERSION=${GIT_VERSION:-"2.50"}
 NODE_VERSION=${NODE_VERSION:-"24.12"}
 PYTHON_VERSION=${PYTHON_VERSION:-"3.14"}
 MARIADB_VERSION=${MARIADB_VERSION:-"11.8"}
@@ -111,7 +110,7 @@ check_variables() {
   local fail=0
 
   # Group variables for clarity
-  local core_vars=("GIT_VERSION" "NODE_VERSION" "PYTHON_VERSION" "MARIADB_VERSION")
+  local core_vars=("NODE_VERSION" "PYTHON_VERSION" "MARIADB_VERSION")
   local db_vars=("DB_TYPE" "DB_HOST" "DB_ROOT_USER" "DB_ROOT_PASSWORD")
   local repo_vars=("REPO_MODE" "REPO_URI" "REPO_PORT" "REPO_SSH_KEY")
   local frappe_vars=("INSTANCE" "SITE_NAME" "SITE_DB_NAME" "APP_LIST")
@@ -223,8 +222,7 @@ install_library() {
       build-essential software-properties-common pkg-config ca-certificates \
       curl wget llvm make gpg openssl sudo unzip zsh cron \
       libcairo2-dev libffi-dev libnss3 libnspr4 tk-dev xvfb \
-      libcurl4-gnutls-dev libexpat1-dev gettext libz-dev libssl-dev \
-      libmysqlclient-dev python3-dev && \
+      libcurl4-gnutls-dev libexpat1-dev gettext libz-dev libssl-dev && \
   sudo apt autoclean -y && sudo apt autoremove -y
 
   success "Install libraries successful"
@@ -235,25 +233,18 @@ install_library() {
 # ************************************************************ #
 
 install_git() {
-  print_header "Install GIT Version ${GIT_VERSION}"
+  print_header "Install GIT"
 
   if exist git; then
     local current_git_version=$(git --version 2>&1 | awk '{print $3}')
     info "GIT version ${current_git_version} already installed. Skipping build."
   else
-    info "Building GIT from source..."
-    sudo sh -c "
-      cd /tmp &&
-      curl -fsSL https://github.com/git/git/archive/refs/tags/v${GIT_VERSION}.zip -o git.zip &&
-      unzip git.zip &&
-      cd git-${GIT_VERSION} &&
-      make clean &&
-      make prefix=/usr/local all &&
-      make prefix=/usr/local install &&
-      rm -f /tmp/git.zip &&
-      rm -rf /tmp/git-${GIT_VERSION}"
+    sudo apt update && sudo apt upgrade -y && \
+    sudo apt install --no-install-recommends -y git && \
+    sudo apt autoclean -y && sudo apt autoremove -y
 
-    success "Install GIT version ${GIT_VERSION} successful"
+    local current_git_version=$(git --version 2>&1 | awk '{print $3}')
+    success "Install GIT version ${current_git_version} successful"
   fi
 }
 
@@ -329,6 +320,10 @@ install_nvm() {
 
 install_python() {
   print_header "Install PYTHON Version ${PYTHON_VERSION}"
+
+  sudo apt update && sudo apt upgrade -y && \
+  sudo apt install --no-install-recommends -y python3-dev && \
+  sudo apt autoclean -y && sudo apt autoremove -y
 
   if ! exist uv; then
     info "Installing uv..."
@@ -409,7 +404,9 @@ install_mariadb() {
     info "Installing MariaDB Server..."
     sudo apt update && \
     sudo apt install --no-install-recommends -y \
-          mariadb-server mariadb-client libmariadb-dev && \
+        mariadb-server mariadb-client \
+        libmariadb-dev libmariadb-dev-compat \
+        default-libmysqlclient-dev libmysqlclient-dev && \
     sudo apt autoclean -y && sudo apt autoremove -y
 
     # Config /etc/mysql/mariadb.conf
@@ -445,7 +442,10 @@ install_mariadb_client() {
 
     info "Installing MariaDB Client..."
     sudo apt update && \
-    sudo apt install --no-install-recommends -y mariadb-client && \
+    sudo apt install --no-install-recommends -y \
+        mariadb-client \
+        libmariadb-dev libmariadb-dev-compat \
+        default-libmysqlclient-dev libmysqlclient-dev \
     sudo apt autoclean -y && sudo apt autoremove -y
 
     # Config /etc/mysql/my.cnf
