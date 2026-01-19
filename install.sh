@@ -222,7 +222,7 @@ install_library() {
       build-essential pkg-config apt-transport-https ca-certificates \
       curl wget llvm make gpg gnupg lsb-release openssl sudo unzip zsh cron \
       libcairo2-dev libffi-dev libnss3 libnspr4 tk-dev xvfb \
-      libcurl4-gnutls-dev libexpat1-dev gettext libz-dev libssl-dev && \
+      libcurl4-gnutls-dev libexpat1-dev gettext zlib1g-dev libssl-dev && \
   sudo apt autoclean -y && sudo apt autoremove -y
 
   success "Install libraries successful"
